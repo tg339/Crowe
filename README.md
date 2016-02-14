@@ -2,7 +2,9 @@
 
 # Crowe
 
-This is an actor system, built in Rust, similar to Scala's excellent Akka.
+This is an actor system, built in Rust, inspired by Scala's excellent Akka library.
+
+We decided to build this library because we believe that performance should not come at the expense of beautiful, correct and functional code. Our team was frustrated with how hard it is to write clean high performance computing programs with existing C libraries such as openMPI. By using Rust our actor system delivers both performance and clean, beautiful code.
 
 ### Why is it called Crowe you may ask?
 

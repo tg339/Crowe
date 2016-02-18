@@ -2,11 +2,23 @@
 //! 
 //! An actor is a high level abstraction of a computing unit. The actor can receive a message.
 
+use std::thread;
+use std::thread::Thread;
+use actor_ref::ActorRef;
+use actor::Actor;
+use rustc_serialize::Decodable;
+
 #[derive(Debug)]
 struct ActorSystem {
     address: String,
     name: String,
-    event_stream: EventStream
+    actors: Vec<ActorRef>
+}
+
+#[derive(Debug)]
+struct Event <T: Decodable>{
+    destinations: Vec<ActorRef>,
+    message: T
 }
 
 impl ActorSystem {
@@ -15,20 +27,27 @@ impl ActorSystem {
     ///
     /// This should be refactored to take in a name and a configuration.
     /// 
-    fn new(name, address) -> ActorSystem {
+    fn new(name: String, address: String) -> ActorSystem {
+        let sys_thread = thread::spawn(move || {
+            println!("Spawed actor system!");
+        });
+
         ActorSystem {
             name: name,
             address: address,
-            event_stream: EventStream::new()
+            thread: sys_thread
         }
     }
 
-    /// Create an actor and return its reference
-    /// This method needs to subsribe the actor to the event stream
-    ///
-    fn create_actor() -> ActorRef {
-        EventStream::subsribe(ActorRef);
+    fn spawn_actor<T>(&self, name: String, receive: fn()) {
+        &self.actors.push(T::new(name, receive));
     }
 
+    // fn broadcast(&self, e: Event) {
+    //     for a in &self.actors {
+    //         //send to all actors
+    //     }
+    // }
 
 }
+

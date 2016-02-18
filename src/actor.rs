@@ -2,29 +2,16 @@
 //! 
 //! An actor is a high level abstraction of a computing unit. The actor can receive a message.
 
+use rustc_serialize::Decodable;
+
 #[derive(Debug)]
-struct Actor {
-    name: String
+pub struct Actor<T: Decodable> {
+    pub name: String,
+    pub receive: fn(message: T)
 }
 
-impl Actor {
-    /// This method takes a name and instantiates an actor
-    ///
-    fn new(name: String) -> Actor {
-        Actor {
-            name: name
-        }
-    }
-}
 
-/// This trait must be 
-trait CanReceive {
-    fn receive(message: Serializable);
-}
 
-impl CanReceive for Actor {
-    fn receive(message: Decodable) {
-        println!("{:?}", "message received");
-    }
-}
+
+
 

@@ -1,9 +1,11 @@
 extern crate crowe;
 extern crate rustc_serialize;
+extern crate time;
+extern crate rand;
 use crowe::actor::{Actor};
 use crowe::actor_system::ActorSystem;
 use rustc_serialize::Decodable;
-
+use time::PreciseTime;
 
 // struct Message {
 //     line: String
@@ -41,27 +43,95 @@ impl Message {
 fn main  () {
 
     fn populate_chans () -> Vec<(Sender<Message>, Receiver<Message>)> {
-    
+
         let mut channels = Vec::new();
-        
+
         for _ in 0..10 {
             let (tx, rx) = channel::<Message>();
             channels.push((tx, rx));
         }
-        
+
         return channels
     }
-    
+
     let chans = populate_chans();
     let message = Message::new("Message Sent".to_string());
 
-    
     chans[0].0.send(message).unwrap();
-    
+
     thread::spawn(move || {
         let ref reception = chans[0].1;
 
         let message = reception.recv().unwrap();
         println!("{:?}", message.line);
     }).join().unwrap();
+
+    // -------------------------------------------------------------------
+    //                            Benchmarks
+    // -------------------------------------------------------------------
+
+    // Bandwidth
+    // =========
+
+    // Packet that will be used during tests to send part of the Buffer
+    #[derive(RustcDecodable)]
+    struct Packet {
+        body: Vec<u8>
+    }
+
+    let buffer_size = 4*1024*1024;
+    // Send part of this buffer in the message
+    let buffer = vec![0; buffer_size];
+    // Number of times to do the experiment for statistical relevance
+    let N = 10000;
+
+    // We are changing the packet size to see how it can affect the bandwidth
+    let mut packet_size = 4;
+    while packet_size <= buffer_size {
+
+        let start = PreciseTime::now();
+
+        for i in 0..N {
+            // Put here send and receive of a messsage from one main thread to another
+        }
+
+        // Time between start and now
+        let duration = start.to(PreciseTime::now());
+        let bw_in_MBs = packet_size * N / (1024*1024) / duration.num_microseconds().unwrap();
+
+        println!("Bandwidth {:?} MBs for packet size of {}", bw_in_MBs, packet_size );
+        packet_size *= 2;
+    }
+
+    // Latency
+    // =======
+
+    let to_send = 0b00000001u8; // One in binary reprensation of a byte
+
+    let start = PreciseTime::now();
+
+    for i in 0..N {
+        // Send the byte to the Actor and wait for the response
+    }
+
+    let duration = start.to(PreciseTime::now());
+    let latency = duration.num_microseconds().unwrap() / (2 * N);
+    println!("Latency {:?} μs", latency);
+
+    // Computation time
+    // ================
+
+    let u = vec![rand::random::<u8>(); N];
+    let v = vec![rand::random::<u8>(); N];
+    let mut product = 0.0;
+
+    let start = PreciseTime::now();
+    for i in 0..N {
+        product += u[i] * v[i];
+    }
+
+    let duration = start.to(PreciseTime::now());
+    let time_per_operation = duration.num_microseconds().unwrap() / (2 * N);
+     // There are at least 2 floating point operation in the computation statement
+     println!("Time per operation {:?} μs", time_per_operation);
 }

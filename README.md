@@ -8,4 +8,4 @@ We decided to build this library because we believe that performance should not 
 
 ### Why is it called Crowe you may ask?
 
-Because we love Gladiator.
+Because we love Gladiator. Are you not entertained?

@@ -97,7 +97,8 @@ fn main  () {
 
         // Time between start and now
         let duration = start.to(PreciseTime::now());
-        let bw_in_MBs = packet_size * N / (1024*1024) / duration.num_microseconds().unwrap();
+        let microseconds = duration.num_microseconds().unwrap() as usize;
+        let bw_in_MBs = packet_size * N / (1024*1024) / microseconds;
 
         println!("Bandwidth {:?} MBs for packet size of {}", bw_in_MBs, packet_size );
         packet_size *= 2;
@@ -115,7 +116,8 @@ fn main  () {
     }
 
     let duration = start.to(PreciseTime::now());
-    let latency = duration.num_microseconds().unwrap() / (2 * N);
+    let microseconds = duration.num_microseconds().unwrap() as usize;
+    let latency = microseconds / (2 * N);
     println!("Latency {:?} μs", latency);
 
     // Computation time
@@ -123,7 +125,7 @@ fn main  () {
 
     let u = vec![rand::random::<u8>(); N];
     let v = vec![rand::random::<u8>(); N];
-    let mut product = 0.0;
+    let mut product = 0.0 as u8;
 
     let start = PreciseTime::now();
     for i in 0..N {
@@ -131,7 +133,8 @@ fn main  () {
     }
 
     let duration = start.to(PreciseTime::now());
-    let time_per_operation = duration.num_microseconds().unwrap() / (2 * N);
+    let microseconds = duration.num_microseconds().unwrap() as usize;
+    let time_per_operation = microseconds / (2 * N);
      // There are at least 2 floating point operation in the computation statement
      println!("Time per operation {:?} μs", time_per_operation);
 }

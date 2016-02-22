@@ -22,7 +22,9 @@ impl Message {
 }
 
 fn receive(message: Message) {
-    println!("{:?}", message.line);
+    thread::spawn(move || {
+        println!("{:?}", message.line);
+    }).join().unwrap();
 }
 
 

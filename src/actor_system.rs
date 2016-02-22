@@ -12,17 +12,17 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 
 
 #[derive(Debug)]
-pub struct ActorSystem <T: Decodable + Clone + Send + Sync + Debug>{
+pub struct ActorSystem <T: 'static>{
     pub address: String,
     pub name: String,
     // Cloning an arc increases the reference count to the ressource
     // This in conjuction with a Mutex makes the ressource mutable
     // accross multiple threads
     // Here we want to be able to add actors from multiple threads
-    pub actors: Vec<ActorRef<T>>
+    pub actors: Arc<Mutex<Vec<T>>>
 }
 
-impl <T: Decodable + Clone + Send + Sync + Debug> ActorSystem <Actor<T>>{
+impl <T: Decodable + Clone + Send + Debug> ActorSystem <Actor<T>>{
     /// This method takes a name and address and generates a new actor.
     ///
     ///
@@ -37,19 +37,17 @@ impl <T: Decodable + Clone + Send + Sync + Debug> ActorSystem <Actor<T>>{
     }
 
     /// Spawn the the actor on a thread
-    pub fn spawn_actor (&mut self, name: String, receive: fn(T) -> T) {
+    pub fn spawn_actor (&mut self, name: String, receive: fn(T)) {
         let actors = self.actors.clone();
-        
         let actor = Actor::new(name, receive);
         actors.lock().unwrap().push(actor);
-        
     }
 
     pub fn broadcast(&mut self, message: T) {
         let actors = self.actors.clone();
         let actor_lock = actors.lock().unwrap();
         for a in actor_lock.iter() {
-            a.ask(message.clone());
+            a.send(message.clone());
         }
     }
 

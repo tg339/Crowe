@@ -27,39 +27,21 @@ fn receive(message: Message) {
 
 
 fn main() {
-    let actor = Actor::new("russel".to_string(), receive);
+    let system_name = "main".to_string();
+    let system_address = "local".to_string();
+    let mut system = ActorSystem::new(system_name, system_address);
+
     let russels_line = Message::new("Are you not entertained?".to_string());
-    actor.send(russels_line)
+
+    system.spawn_actor("russel".to_string(), receive);
+    system.spawn_actor("jackie".to_string(), receive);
+
+    let actors = system.actors.clone();
+    let lock = actors.lock().unwrap();
+    
+    let actor_array = lock.iter().collect::<Vec<_>>();
+
+    for a in actor_array {
+        a.send(russels_line.clone());    
+    }
 }
-
-
-
-
-
-// fn main  () {
-
-//     fn populate_chans () -> Vec<(Sender<Message>, Receiver<Message>)> {
-    
-//         let mut channels = Vec::new();
-        
-//         for _ in 0..10 {
-//             let (tx, rx) = channel::<Message>();
-//             channels.push((tx, rx));
-//         }
-        
-//         return channels
-//     }
-    
-//     let chans = populate_chans();
-//     let message = Message::new("Message Sent".to_string());
-
-    
-//     chans[0].0.send(message).unwrap();
-    
-//     thread::spawn(move || {
-//         let ref reception = chans[0].1;
-
-//         let message = reception.recv().unwrap();
-//         println!("{:?}", message.line);
-//     }).join().unwrap();
-// }

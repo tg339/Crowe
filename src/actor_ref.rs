@@ -1,15 +1,13 @@
 //! The fundamental computing unit of the Crowe actor system
 //! 
 //! An actor is a high level abstraction of a computing unit. The actor can receive a message.
+use rustc_serialize::Decodable;
+use std::sync::mpsc::{Sender, Receiver, channel};
+use std::fmt::Debug;
 
-// use std::collections::LinkedList;
-// use actor_system::Event;
-
-
-#[derive(Debug)]
-pub struct ActorRef {
+pub struct ActorRef<T: Decodable + Clone + Send + Sync + Debug> {
     pub name: String,
-    // thread: Thread,
+    pub channel: (Sender<T>, Receiver<T>),
     pub path: String //Must be unique
 }
 

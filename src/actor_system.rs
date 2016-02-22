@@ -12,23 +12,23 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 
 
 #[derive(Debug)]
-pub struct ActorSystem <T: 'static>{
-    address: String,
-    name: String,
-    actors: Arc<Mutex<Vec<T>>>
+pub struct ActorSystem <T: Decodable + Clone + Send + Sync + Debug>{
+    pub address: String,
+    pub name: String,
+    // Cloning an arc increases the reference count to the ressource
+    // This in conjuction with a Mutex makes the ressource mutable
+    // accross multiple threads
+    // Here we want to be able to add actors from multiple threads
+    pub actors: Vec<ActorRef<T>>
 }
 
-impl <T: Decodable + Copy + Send + Debug> ActorSystem <Actor<T>>{
+impl <T: Decodable + Clone + Send + Sync + Debug> ActorSystem <Actor<T>>{
     /// This method takes a name and address and generates a new actor.
     ///
     ///
     /// This should be refactored to take in a name and a configuration.
     /// 
-    fn new(name: String, address: String) -> ActorSystem <Actor<T>>{
-        // let sys_thread = thread::spawn(move || {
-        //     println!("Spawed actor system!");
-        // });
-
+    pub fn new(name: String, address: String) -> ActorSystem <Actor<T>>{
         ActorSystem {
             name: name,
             address: address,
@@ -37,20 +37,29 @@ impl <T: Decodable + Copy + Send + Debug> ActorSystem <Actor<T>>{
     }
 
     /// Spawn the the actor on a thread
-    fn spawn_actor (&mut self, name: String, channel: (Sender<T>, Receiver<T>), receive: fn(T)) {
+    pub fn spawn_actor (&mut self, name: String, receive: fn(T) -> T) {
         let actors = self.actors.clone();
-        thread::spawn(move || {
-            let actor = Actor::new(name, receive);
-            actors.lock().unwrap().push(actor);
-        }).join().unwrap();
+        
+        let actor = Actor::new(name, receive);
+        actors.lock().unwrap().push(actor);
+        
     }
 
-    // fn broadcast(&self, message: T) {
+    pub fn broadcast(&mut self, message: T) {
+        let actors = self.actors.clone();
+        let actor_lock = actors.lock().unwrap();
+        for a in actor_lock.iter() {
+            a.ask(message.clone());
+        }
+    }
+
+    // Because Mutex 
+    // pub fn  get_actors (self) -> Vec<Actor<T>> {
     //     let actors = self.actors.clone();
-    //     for a in actors.lock().unwrap() {
-    //         //send to all actors
-    //         a.send(message)
-    //     }
+    //     let lock = actors.lock().unwrap();
+    //     let actor_vec = lock.iter().collect::<Vec<_>>();
+
+    //     return actor_vec;
     // }
 
 }

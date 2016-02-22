@@ -3,17 +3,18 @@
 //! An actor is a high level abstraction of a computing unit. The actor can receive a message.
 use rustc_serialize::Decodable;
 use std::sync::mpsc::{Sender, Receiver, channel};
+use std::fmt::Debug;
 
 
-pub struct Actor<T: Decodable> {
+pub struct Actor<T: Decodable + Debug> {
     pub name: String,
     pub channel: (Sender<T>, Receiver<T>), //Accessible with channel.1
     pub receive: fn(message: T)
 }
 
-impl <T: Decodable> Actor <T> {
+impl <T: Decodable + Clone + Debug> Actor <T> {
     
-    fn send(&self, message: T) {
+    pub fn send(&self, message: T) {
         
         // The transmission end of the channel
         self.channel.0.send(message).unwrap(); 
@@ -25,7 +26,7 @@ impl <T: Decodable> Actor <T> {
     }
 
 
-    fn new  (name: String, receive: fn(message: T)) -> Actor <T> {
+    pub fn new(name: String, receive: fn(message: T)) -> Actor <T> {
         Actor {
             name: name,
             receive: receive,

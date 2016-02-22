@@ -2,7 +2,7 @@
 //! 
 //! An actor is a high level abstraction of a computing unit. The actor can receive a message.
 
-use std::collections::LinkedList;
+// use std::collections::LinkedList;
 // use actor_system::Event;
 
 

@@ -8,6 +8,6 @@ use actor::Actor;
 
 
 #[derive(Debug)]
-struct ActrorRef<A: Actor + 'static> {
+pub struct ActorRef<A: Actor + Sized + 'static> {
     actor: Arc<Mutex<A>>
 }

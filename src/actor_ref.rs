@@ -10,14 +10,15 @@ use std::sync::mpsc::channel;
 ///
 
 
-#[derive(Debug)]
-pub struct ActorRef<A: Actor + Sized + 'static> {
+pub struct ActorRef<A: Actor> {
     pub actor: Arc<Mutex<A>>
 }
 
 
-impl <A>ActorRef<A> where A: Actor + Sized + 'static {
+impl <A>ActorRef<A> where A: Actor {
     pub fn new(actor: A) -> ActorRef<A> {
+        // Add reference to threadpool and receive function in 
+        // the contructor
         ActorRef {
             actor: Arc::new(Mutex::new(actor))
         }
@@ -27,13 +28,17 @@ impl <A>ActorRef<A> where A: Actor + Sized + 'static {
         where F: Fn(M) + Send + 'static,
               M: Sized + Send + 'static {
 
-        let (tx, rx) = channel();        
+        // Use the references to the receive function and pool to be able to
+        // abstract away the need for the user to pass in pool and receive
 
-        pool.execute(move|| {
+        let (tx, rx) = channel();       
+
+        pool.execute(move || {
             (receive)(message);
             tx.send("Finished".to_string()).unwrap();
         });
 
+        // Recv blocks the thread until the other thread has finished
         return rx.recv().unwrap();
 
     }

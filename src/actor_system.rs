@@ -17,7 +17,7 @@ use actor_ref::ActorRef;
 ///
 /// ```
 ///
-/// let pool = ActorSystem::new(num_cpus::get());
+/// let system = ActorSystem::new(num_cpus::get());
 ///
 /// ```
 pub struct ActorSystem<A: Actor + Sized + 'static> {
@@ -25,18 +25,18 @@ pub struct ActorSystem<A: Actor + Sized + 'static> {
     // accessed by name. Depending on how actors are referenced this
     // could be a more efficient way of referencing actors
     pub pool: ThreadPool,
-    actor_refs: Vec<ActorRef<A>>
+    pub actor_refs: Vec<ActorRef<A>>
 }
 
 impl <A>ActorSystem<A> where A: Actor + Sized + 'static {
-    fn new(thread_count: usize) -> ActorSystem<A> {
+    pub fn new(thread_count: usize) -> ActorSystem<A> {
         ActorSystem {
             pool: ThreadPool::new(thread_count),
             actor_refs: Vec::<ActorRef<A>>::new()
         }
     }
 
-    fn spawn_actor(&mut self, actor: A) -> &ActorRef<A> {
+    pub fn spawn_actor(&mut self, actor: A) -> &ActorRef<A> {
         self.actor_refs.push(ActorRef::new(actor));
         return self.actor_refs.last().unwrap();
     }

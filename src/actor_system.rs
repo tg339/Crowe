@@ -21,21 +21,25 @@ use actor_ref::ActorRef;
 ///
 /// ```
 pub struct ActorSystem<A: Actor + Sized + 'static> {
-    pool: ThreadPool,
-    actors: Vec<A>,
-    references: Vec<ActorRef<A>>
+    // We can alternatively store actors in hashes so that they can be 
+    // accessed by name. Depending on how actors are referenced this
+    // could be a more efficient way of referencing actors
+    pub pool: ThreadPool,
+    actor_refs: Vec<ActorRef<A>>
 }
 
 impl <A>ActorSystem<A> where A: Actor + Sized + 'static {
     fn new(thread_count: usize) -> ActorSystem<A> {
         ActorSystem {
             pool: ThreadPool::new(thread_count),
-            actors: Vec::<A>::new(),
-            references: Vec::<ActorRef<A>>::new(),
+            actor_refs: Vec::<ActorRef<A>>::new()
         }
     }
 
-    fn spawn_actor(&mut self, actor: A) -> ActorRef<A>{
-        unimplemented!()   
+    fn spawn_actor(&mut self, actor: A) -> &ActorRef<A> {
+        self.actor_refs.push(ActorRef::new(actor));
+        return self.actor_refs.last().unwrap();
     }
+
+
 }

@@ -1,7 +1,9 @@
 use threadpool::ThreadPool;
-use actor::Actor;
+use actor::{Role, Message};
 use actor_ref::ActorRef;
 use std::collections::HashMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 /// A central actor system which manages the actor references and actors
 ///
@@ -21,27 +23,34 @@ use std::collections::HashMap;
 /// let system = ActorSystem::new(num_cpus::get());
 ///
 /// ```
-pub struct ActorSystem<A: Actor> {
+pub struct ActorSystem<'a, A: Clone> {
     // We can alternatively store actors in hashes so that they can be 
     // accessed by name. Depending on how actors are referenced this
     // could be a more efficient way of referencing actors
     pub pool: ThreadPool,
-    pub actor_refs: HashMap<String, ActorRef<A>>
+    pub actor_refs: Rc<RefCell<HashMap<String, ActorRef<'a, A>>>>
 }
 
 
-impl <A>ActorSystem<A> where A: Actor   {
-    pub fn new(thread_count: usize) -> ActorSystem<A> {
+impl <'a, A: Clone>ActorSystem<'a, A> {
+    pub fn new(thread_count: usize) -> ActorSystem<'a, A> {
         ActorSystem {
             pool: ThreadPool::new(thread_count),
-            actor_refs: HashMap::<String, ActorRef<A>>::new()
+            actor_refs: Rc::new(RefCell::new(HashMap::<String, ActorRef<'a, A>>::new()))
         }
     }
 
-    pub fn spawn_actor(&mut self, actor: A) -> &ActorRef<A> {
-        let actor = actor.clone();
+    pub fn spawn_actor(&'a self, name: String, actor: A) -> ActorRef<A> {
         
-        self.actor_refs.insert(actor.name(), ActorRef::new(actor.clone()));
-        return self.actor_refs.get(&*actor.name()).unwrap();
+        let actor_ref = ActorRef::new(actor, &self.pool);
+
+        {
+            let mut actor_refs = self.actor_refs.borrow_mut();
+            actor_refs.insert(name.clone(), actor_ref);    
+        }
+
+        let actor_refs = self.actor_refs.borrow().get(&name.clone()).unwrap().clone();
+        
+        return actor_refs;
     }
 }

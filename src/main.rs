@@ -87,7 +87,6 @@ fn main() {
     }
 
 
-
     let crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
     let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
 

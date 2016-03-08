@@ -30,7 +30,7 @@ struct Russel {
 struct Joaquin {
     last_name: String
 }
-    
+
 impl Role for Russel {
     fn receive<M>(message: M) where M: Send + Decodable + Message {
 
@@ -44,7 +44,7 @@ impl Role for Russel {
 
         println!("{:?}", exclamated);
     }
-    
+
 }
 
 
@@ -60,7 +60,7 @@ impl Role for Joaquin {
 
         println!("{:?}", exclamated);
     }
-    
+
 }
 
 #[derive(Clone)]
@@ -78,12 +78,12 @@ fn main() {
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Crowe".to_string(), actor);  
+        let act_ref = &mut system.spawn_actor("Crowe".to_string(), actor);
     }
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), actor2);  
+        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), actor2);
     }
 
 
@@ -95,5 +95,45 @@ fn main() {
 
     let response = crowe.send(Russel::receive, message.clone());
     let response2 = joaquin.send(Joaquin::receive, message2.clone());
+
+
+    // Assignement 2 trial division.
+    // =============================
+
+    // Definition of the actor roles, we only have workers since the master is the Actor sytem
+    // We also will compute the repartition of the tasks on the current thread.
+    #[derive(Clone)]
+    struct Worker {}
+
+    impl Role for Worker {
+        fn receive<M>(message: M) where M: Send + Decodable + Message {
+            match message.as_object() {
+                Some(obj) => match obj.get("prime_list") {
+                    Some(prime_list) => match prime_list.as_array() {
+                        Some(prime_array) => prime_array.iter().fold(Vec::new(),|acc, js_value| {
+                            match js_value.as_i64() {
+                                Some(number) => {
+                                    if ()
+                                }
+                                None => acc
+                            }
+                        })
+                        None panic!("The 'prime_list' field is not an array");
+                    }
+                    None => panic!("The message received doesn't have a 'prime_list' defined.");
+                }
+                None => panic!("Oops the message received is not an object !");
+            }
+        }
+    }
+
+
+    // Execution of the division template
+
+    let processors = 2;
+    let mut trialSystem = ActorSystem::new(processors)
+
+    let master = Cas
+    // The number of
 
 }

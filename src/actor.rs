@@ -1,11 +1,7 @@
-use rustc_serialize::Decodable;
+use rustc_serialize::json::Json;
 use std::fmt::Debug;
 
-pub trait Message {
-    fn content(&self) -> String;
-}
-
 pub trait Role {
-    fn receive<M>(message: M) where  M: Send + Decodable  + Message;
+    fn receive(message: Json) ;
 }
 

@@ -1,7 +1,8 @@
 use actor_system::ActorSystem;
 use threadpool::ThreadPool;
+use rustc_serialize::json::Json;
 use std::sync::mpsc::channel;
-use actor::{Role, Message};
+use actor::Role;
 use std::sync::mpsc::{TryRecvError, RecvError};
 /// Actor Reference
 /// Has in its guts the Actor(A), Message(M) and Result(R)
@@ -26,9 +27,8 @@ impl <'a, A>ActorRef<'a, A> {
         }
     }
 
-    pub fn send<F, M>(&self, receive: F, message: M) -> Result<String, RecvError>
-        where F: Fn(M) + Send + 'static,
-              M: Sized + Send + 'static {
+    pub fn send<F>(&self, receive: F, message: Json) -> Result<String, RecvError>
+        where F: Fn(Json) + Send + 'static {
 
         // Use the references to the receive function and pool to be able to
         // abstract away the need for the user to pass in pool and receive

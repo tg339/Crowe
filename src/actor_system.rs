@@ -1,5 +1,5 @@
 use threadpool::ThreadPool;
-use actor::{Role, Message};
+use actor::Role;
 use actor_ref::ActorRef;
 use std::collections::HashMap;
 use std::cell::RefCell;

@@ -1,8 +1,9 @@
 extern crate crowe;
 extern crate rustc_serialize;
-use crowe::actor::{Role, Message};
+use crowe::actor::{Role};
 use crowe::actor_system::ActorSystem;
-use rustc_serialize::Decodable;
+use rustc_serialize::{Decodable};
+use rustc_serialize::json::*;
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::fmt::Debug;
@@ -10,16 +11,17 @@ use std::thread::sleep;
 use std::time::Duration;
 
 
-#[derive(Debug, RustcDecodable, Clone)]
+#[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
     content: String
 }
 
-impl Message for MyMessage {
-    fn content(&self) -> String {
-        return self.content.clone();
+impl ToJson for MyMessage {
+    fn to_json(&self) -> Json {
+        Json::String(format!("{}", self.content))
     }
 }
+
 
 #[derive(Clone)]
 struct Russel {
@@ -32,33 +34,29 @@ struct Joaquin {
 }
 
 impl Role for Russel {
-    fn receive<M>(message: M) where M: Send + Decodable + Message {
+    fn receive(message: Json) {
 
         fn add_exclamation(content: String) -> String {
             return content + "!"
         }
 
-        let content = message.content();
-        let exclamated = add_exclamation(content);
+        
         // sleep(Duration::from_millis(2));
 
-        println!("{:?}", exclamated);
+        println!("{:?}", message.to_string());
     }
 
 }
 
 
 impl Role for Joaquin {
-    fn receive<M>(message: M) where M: Send + Decodable + Message {
+    fn receive(message: Json){
 
         fn add_exclamation(content: String) -> String {
             return content + "!"
         }
 
-        let content = message.content();
-        let exclamated = add_exclamation(content);
-
-        println!("{:?}", exclamated);
+        println!("{:?}", message.to_string());
     }
 
 }
@@ -73,17 +71,22 @@ fn main() {
     // Spawing Actor system with a threadpool of 4
     let mut system = ActorSystem::new(4);
 
-    let actor = Cast::Role1(Russel{first_name: "Russel".to_string()});
-    let actor2 = Cast::Role2(Joaquin{last_name: "Russel".to_string()});
-
     {
         // Spawn as many actors as you want
+<<<<<<< HEAD
         let act_ref = &mut system.spawn_actor("Crowe".to_string(), actor);
+=======
+        let act_ref = &mut system.spawn_actor("Crowe".to_string(), Cast::Role1(Russel{first_name: "Russel".to_string()}));
+>>>>>>> actualSytem
     }
 
     {
         // Spawn as many actors as you want
+<<<<<<< HEAD
         let act_ref = &mut system.spawn_actor("Joaquin".to_string(), actor2);
+=======
+        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Cast::Role2(Joaquin{last_name: "Russel".to_string()}));  
+>>>>>>> actualSytem
     }
 
 
@@ -93,8 +96,8 @@ fn main() {
     let message = MyMessage{content: "Are you not entertained?".to_string()};
     let message2 = MyMessage{content: "No, I am not entertained".to_string()};
 
-    let response = crowe.send(Russel::receive, message.clone());
-    let response2 = joaquin.send(Joaquin::receive, message2.clone());
+    let response = crowe.send(Russel::receive, message.to_json());
+    let response2 = joaquin.send(Joaquin::receive, message2.to_json());
 
 
     // Assignement 2 trial division.

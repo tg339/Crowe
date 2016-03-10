@@ -1,14 +1,10 @@
 extern crate crowe;
 extern crate rustc_serialize;
-use crowe::actor::{Role};
+
+use crowe::actor::Role;
 use crowe::actor_system::ActorSystem;
-use rustc_serialize::{Decodable};
+
 use rustc_serialize::json::*;
-use std::thread;
-use std::sync::mpsc::{Sender, Receiver, channel};
-use std::fmt::Debug;
-use std::thread::sleep;
-use std::time::Duration;
 
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -41,43 +37,30 @@ struct Joaquin {
     
 impl Role for Russel {
     fn receive(&self, message: Json) {
-
-        fn add_exclamation(content: String) -> String {
-            return content + "!"
-        }
-
-        // sleep(Duration::from_millis(2));
-
         println!("{:?}", message.to_string() + &*self.first_name.clone() + &*self.say_hi().clone() );
-    }
-    
+    }   
 }
 
 
 impl Role for Joaquin {
-    fn receive(&self, message: Json){
-
-        fn add_exclamation(content: String) -> String {
-            return content + "!"
-        }
-
+    fn receive(&self, message: Json) {
         println!("{:?}", message.to_string());
     }
-    
 }
 
-fn main() {
-    // Spawing Actor system with a threadpool of 4
-    let mut system = ActorSystem::new(4);
+
+#[test]
+fn generating_multiple_actors_sending_message_and_getting_responses() {
+     let system = ActorSystem::new(4);
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
+        &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
     }
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
+        &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
     }
 
 
@@ -94,5 +77,4 @@ fn main() {
 
     println!("{:?}", response.recv());
     println!("{:?}", response2.recv());
-
 }

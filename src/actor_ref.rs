@@ -31,19 +31,17 @@ use std::sync::Arc;
 
 
 #[derive(Clone)]
-pub struct ActorRef<'a, A> {
-    pub actor: A,
+pub struct ActorRef<'a> {
     pool: &'a ThreadPool,
     role: Arc<Box<Role + Sync + Send + 'static>>
 }
 
 
-impl <'a, A: Sync>ActorRef<'a, A> {
-    pub fn new(actor: A, pool: &'a ThreadPool, role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'a, A> {
+impl <'a>ActorRef<'a> {
+    pub fn new(pool: &'a ThreadPool, role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'a> {
         // Add reference to threadpool and receive function in 
         // the contructor
         ActorRef {
-            actor: actor,
             pool: pool,
             role: role
         }

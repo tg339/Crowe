@@ -104,8 +104,8 @@ fn main() {
 
     #[derive(RustcDecodable, RustcEncodable)]
     struct DivideOrder {
-        divided_n: u32,
-        number_list: Vec<u32>
+        divided_n: usize,
+        number_list: Vec<usize>
     }
 
     impl ToJson for DivideOrder {
@@ -122,19 +122,21 @@ fn main() {
         fn receive(message: Json) {
             match message.as_object() {
                 Some(obj) => match (obj.get("number_list"), obj.get("divided_n")) {
-                    (Some(number_list), Some(n)) => match number_list.as_array() {
-                        Some(number_array) => number_array.iter().fold(Vec::new(),|acc, js_value| {
-                            match js_value.as_i64() {
+                    (Some(number_list), Some(njson)) => match (number_list.as_array(), njson.as_u64()) {
+                        (Some(number_array), Some(n)) => number_array.iter().fold(Vec::new(), |acc, js_value| {
+                            match js_value.as_u64() {
                                 Some(number) => {
                                     if n % number == 0 {
                                         acc.push(number);
                                     }
-                                    acc;
+                                    acc
                                 },
                                 None => acc
                             }
                         }),
-                        None => panic!("The 'number_list' field is not an array")
+                        (None, Some(n)) => panic!("The 'number_list' field is not an array"),
+                        (Some(arr), None) => panic!("The 'divided_n' field is not an integer"),
+                        (None, None) => panic!("Neither 'number_list' or 'divided_n' are the right type")
                     },
                     (None, Some(n)) => panic!("The message received doesn't have a 'number_list' defined."),
                     (Some(l), None) => panic!("The message received doesn't have a 'divided_n' defined."),

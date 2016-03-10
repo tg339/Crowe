@@ -34,7 +34,7 @@ struct Joaquin {
 }
     
 impl Role for Russel {
-    fn receive(message: Json) {
+    fn receive(&self, message: Json) {
 
         fn add_exclamation(content: String) -> String {
             return content + "!"
@@ -50,7 +50,7 @@ impl Role for Russel {
 
 
 impl Role for Joaquin {
-    fn receive(message: Json){
+    fn receive(&self, message: Json){
 
         fn add_exclamation(content: String) -> String {
             return content + "!"
@@ -73,22 +73,25 @@ fn main() {
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Crowe".to_string(), Cast::Role1(Russel{first_name: "Russel".to_string()}));
+        let act_ref = &mut system.spawn_actor("Crowe".to_string(), Cast::Role1(Russel{first_name: "Russel".to_string()}), Box::new(Russel{first_name: "Russel".to_string()}));
     }
 
-    {
-        // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Cast::Role2(Joaquin{last_name: "Russel".to_string()}));  
-    }
+    // {
+    //     // Spawn as many actors as you want
+    //     let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Cast::Role2(Joaquin{last_name: "Russel".to_string()}));  
+    // }
 
 
     let crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
-    let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
+    // let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
+
+    // let some = system.actors.borrow().get("Crowe").unwrap().clone();
 
     let message = MyMessage{content: "Are you not entertained?".to_string()};
     let message2 = MyMessage{content: "No, I am not entertained".to_string()};
 
-    let response = crowe.send(Russel::receive, message.to_json());
-    let response2 = joaquin.send(Joaquin::receive, message2.to_json());
+    let response = crowe.send(message.to_json());
+    println!("{:?}", response.recv());
+    // let response2 = joaquin.send(message2.to_json());
 
 }

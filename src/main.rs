@@ -9,6 +9,7 @@ use std::sync::mpsc::{Sender, Receiver, channel};
 use std::fmt::Debug;
 use std::thread::sleep;
 use std::time::Duration;
+use std::collections::BTreeMap;
 
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -40,7 +41,7 @@ impl Role for Russel {
             return content + "!"
         }
 
-        
+
         // sleep(Duration::from_millis(2));
 
         println!("{:?}", message.to_string());
@@ -73,20 +74,12 @@ fn main() {
 
     {
         // Spawn as many actors as you want
-<<<<<<< HEAD
-        let act_ref = &mut system.spawn_actor("Crowe".to_string(), actor);
-=======
         let act_ref = &mut system.spawn_actor("Crowe".to_string(), Cast::Role1(Russel{first_name: "Russel".to_string()}));
->>>>>>> actualSytem
     }
 
     {
         // Spawn as many actors as you want
-<<<<<<< HEAD
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), actor2);
-=======
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Cast::Role2(Joaquin{last_name: "Russel".to_string()}));  
->>>>>>> actualSytem
+        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Cast::Role2(Joaquin{last_name: "Russel".to_string()}));
     }
 
 
@@ -105,38 +98,82 @@ fn main() {
 
     // Definition of the actor roles, we only have workers since the master is the Actor sytem
     // We also will compute the repartition of the tasks on the current thread.
+    // The Actor does not need to hold any state
     #[derive(Clone)]
-    struct Worker {}
+    struct Worker;
+
+    #[derive(RustcDecodable, RustcEncodable)]
+    struct DivideOrder {
+        divided_n: u32,
+        number_list: Vec<u32>
+    }
+
+    impl ToJson for DivideOrder {
+        fn to_json(&self) -> Json {
+            let mut d = BTreeMap::new();
+
+            d.insert("number_list".to_string(), self.number_list.to_json());
+            d.insert("divided_n".to_string(), self.divided_n.to_json());
+            Json::Object(d)
+        }
+    }
 
     impl Role for Worker {
-        fn receive<M>(message: M) where M: Send + Decodable + Message {
+        fn receive(message: Json) {
             match message.as_object() {
-                Some(obj) => match obj.get("prime_list") {
-                    Some(prime_list) => match prime_list.as_array() {
-                        Some(prime_array) => prime_array.iter().fold(Vec::new(),|acc, js_value| {
+                Some(obj) => match (obj.get("number_list"), obj.get("divided_n")) {
+                    (Some(number_list), Some(n)) => match number_list.as_array() {
+                        Some(number_array) => number_array.iter().fold(Vec::new(),|acc, js_value| {
                             match js_value.as_i64() {
                                 Some(number) => {
-                                    if ()
-                                }
+                                    if n % number == 0 {
+                                        acc.push(number);
+                                    }
+                                    acc;
+                                },
                                 None => acc
                             }
-                        })
-                        None panic!("The 'prime_list' field is not an array");
-                    }
-                    None => panic!("The message received doesn't have a 'prime_list' defined.");
-                }
-                None => panic!("Oops the message received is not an object !");
+                        }),
+                        None => panic!("The 'number_list' field is not an array")
+                    },
+                    (None, Some(n)) => panic!("The message received doesn't have a 'number_list' defined."),
+                    (Some(l), None) => panic!("The message received doesn't have a 'divided_n' defined."),
+                    (None, None) => panic!("The message received doesn't have 'divided_n' or 'number_list' defined."),
+                },
+                None => panic!("Oops the message received is not an object !")
             }
         }
     }
 
-
     // Execution of the division template
+    let number_to_divide: usize = 3293428;
+    let processors: usize = 2;
+    let mut trialSystem = ActorSystem::new(processors);
 
-    let processors = 2;
-    let mut trialSystem = ActorSystem::new(processors)
+    // Let's compute the repartition of the numbers
+    // We ceil, the last bucket may have less work to do but it guarantees that
+    // all the work will be assigned
+    let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
+    let work_holder = Vec::with_capacity(processors);
 
-    let master = Cas
-    // The number of
+    // Generate the work
+    for i in 1..processors {
+        work_holder.push(Vec::with_capacity(number_per_worker));
+        let upper_bound = (i * number_per_worker) + 1;
+        if upper_bound < number_to_divide{
+            for it in ((i - 1) * number_per_worker + 1)..upper_bound {
+                work_holder[i].push(it);
+            }
+        }
+    }
 
+    // Compute the results
+    let channels = Vec::new();
+    {
+        let act_ref = &mut trialSystem.spawn_actor("Worker".to_string(), Cast::Project(Worker{}));
+        for i in 1..processors {
+            let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work_holder[i]};
+            channels.push(act_ref.send(Russel::receive, divideOrder.to_json()));
+        }
+    }
 }

@@ -122,30 +122,29 @@ fn main() {
 
     impl Role for Worker {
         fn receive(&self, message: Json) {
-            match message.as_object() {
-                Some(obj) => match (obj.get("number_list"), obj.get("divided_n")) {
-                    (Some(number_list), Some(njson)) => match (number_list.as_array(), njson.as_u64()) {
-                        (Some(number_array), Some(n)) => number_array.iter().fold(Vec::new(), |acc, js_value| {
-                            match js_value.as_u64() {
-                                Some(number) => {
-                                    if n % number == 0 {
-                                        acc.push(number);
-                                    }
-                                    acc
-                                },
-                                None => acc
-                            }
-                        }),
-                        (None, Some(n)) => panic!("The 'number_list' field is not an array"),
-                        (Some(arr), None) => panic!("The 'divided_n' field is not an integer"),
-                        (None, None) => panic!("Neither 'number_list' or 'divided_n' are the right type")
-                    },
-                    (None, Some(n)) => panic!("The message received doesn't have a 'number_list' defined."),
-                    (Some(l), None) => panic!("The message received doesn't have a 'divided_n' defined."),
-                    (None, None) => panic!("The message received doesn't have 'divided_n' or 'number_list' defined."),
-                },
-                None => panic!("Oops the message received is not an object !")
-            }
+
+            let obj = message.as_object().expect("The message should be a valid Json object");
+
+            let number_list = obj.get("number_list")
+                .expect("The message received doesn't have a 'number_list' defined.")
+                .as_array()
+                .expect("The 'number_list' field is not an array");
+
+            let n = obj.get("divided_n")
+                .expect("The message received doesn't have a 'divided_n' defined.")
+                .as_u64()
+                .expect("The 'divided_n' field is not an integer");
+
+            number_list.iter()
+                .filter_map(|number| {
+                    let temp = number.as_u64().expect("'number_list' contains non number values");
+
+                    if n % temp == 0 {
+                        Some(temp)
+                    } else {
+                        None
+                    }
+                }).collect::<Vec<u64>>();
         }
     }
 
@@ -158,26 +157,20 @@ fn main() {
     // We ceil, the last bucket may have less work to do but it guarantees that
     // all the work will be assigned
     let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
-    let work_holder = Vec::with_capacity(processors);
+    let mut channels = Vec::new();
+
+    let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
 
     // Generate the work
     for i in 1..processors {
-        work_holder.push(Vec::with_capacity(number_per_worker));
+        let mut work = Vec::with_capacity(number_per_worker);
         let upper_bound = (i * number_per_worker) + 1;
         if upper_bound < number_to_divide{
             for it in ((i - 1) * number_per_worker + 1)..upper_bound {
-                work_holder[i].push(it);
+                work.push(it);
             }
         }
-    }
-
-    // Compute the results
-    let channels = Vec::new();
-    {
-        let act_ref = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
-        for i in 1..processors {
-            let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work_holder[i]};
-            channels.push(act_ref.send(divideOrder.to_json()));
-        }
+        let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work};
+        channels.push(worker.send(divideOrder.to_json()));
     }
 }

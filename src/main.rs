@@ -6,7 +6,6 @@ use rustc_serialize::{Decodable};
 use rustc_serialize::json::*;
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver, channel};
-use std::fmt::Debug;
 use std::thread::sleep;
 use std::time::Duration;
 use std::collections::BTreeMap;
@@ -122,7 +121,7 @@ fn main() {
     }
 
     impl Role for Worker {
-        fn receive(message: Json) {
+        fn receive(&self, message: Json) {
             match message.as_object() {
                 Some(obj) => match (obj.get("number_list"), obj.get("divided_n")) {
                     (Some(number_list), Some(njson)) => match (number_list.as_array(), njson.as_u64()) {
@@ -175,10 +174,10 @@ fn main() {
     // Compute the results
     let channels = Vec::new();
     {
-        let act_ref = &mut trialSystem.spawn_actor("Worker".to_string(), Cast::Project(Worker{}));
+        let act_ref = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
         for i in 1..processors {
             let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work_holder[i]};
-            channels.push(act_ref.send(Russel::receive, divideOrder.to_json()));
+            channels.push(act_ref.send(divideOrder.to_json()));
         }
     }
 }

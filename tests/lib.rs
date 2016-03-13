@@ -36,15 +36,15 @@ struct Joaquin {
 }
     
 impl Role for Russel {
-    fn receive(&self, message: Json) {
-        println!("{:?}", message.to_string() + &*self.first_name.clone() + &*self.say_hi().clone() );
+    fn receive(&self, message: Json) -> Json {
+        return Json::String(self.say_hi());
     }   
 }
 
 
 impl Role for Joaquin {
-    fn receive(&self, message: Json) {
-        println!("{:?}", message.to_string());
+    fn receive(&self, message: Json) -> Json {
+        return Json::String(message.to_string());
     }
 }
 
@@ -75,6 +75,8 @@ fn generating_multiple_actors_sending_message_and_getting_responses() {
     let response = crowe.send(message.to_json());
     let response2 = joaquin.send(message2.to_json());
 
-    println!("{:?}", response.recv());
-    println!("{:?}", response2.recv());
+    assert_eq!(response.recv().unwrap(), "\"I said hello\"".to_string());
+
+    println!("{:?}", response.recv().unwrap());
+    println!("{:?}", response2.recv().unwrap());
 }

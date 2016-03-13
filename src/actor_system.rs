@@ -18,29 +18,30 @@ use std::sync::Arc;
 ///
 ///
 ///
-pub struct ActorSystem<'a> {
+pub struct ActorSystem<'sys, 'b: 'sys> {
     // We can alternatively store actors in hashes so that they can be 
     // accessed by name. Depending on how actors are referenced this
     // could be a more efficient way of referencing actors
     pub pool: ThreadPool,
-    pub actor_refs: Rc<RefCell<HashMap<String, ActorRef<'a>>>>
+    pub actor_refs: Rc<RefCell<HashMap<String, ActorRef<'sys, 'b>>>>
     // pub actors: Rc<RefCell<HashMap<Stringrc<Box<Role + Send + 'static>>>>>
 }
 
 
-impl <'a>ActorSystem<'a> {
-    pub fn new(thread_count: usize) -> ActorSystem<'a> {
+impl <'sys, 'b>ActorSystem<'sys, 'b> {
+    pub fn new(thread_count: usize) -> ActorSystem<'sys, 'b> {
         ActorSystem {
             pool: ThreadPool::new(thread_count),
-            actor_refs: Rc::new(RefCell::new(HashMap::<String, ActorRef<'a>>::new())),
+            actor_refs: Rc::new(RefCell::new(HashMap::<String, ActorRef<'sys, 'b>>::new())),
         }
     }
 
-    pub fn spawn_actor(&'a self, name: String, role: Box<Role + Sync + Send + 'static>) -> ActorRef<'a> {
+    pub fn spawn_actor(&'sys self, name: String, role: Box<Role + Sync + Send + 'static>) -> ActorRef<'sys, 'b> {
         
         let arc_role = Arc::new(role);
 
-        let actor_ref = ActorRef::new(&self.pool, arc_role.clone());
+        let actor_ref = ActorRef::new(&self, arc_role.clone());
+        // let actor_ref = ActorRef::new(&self.pool, arc_role.clone());
 
         {
             let mut actor_refs = self.actor_refs.borrow_mut();

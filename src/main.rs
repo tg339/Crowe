@@ -10,7 +10,6 @@ use std::fmt::Debug;
 use std::thread::sleep;
 use std::time::Duration;
 
-
 #[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
     content: String
@@ -40,44 +39,30 @@ struct Joaquin {
 }
     
 impl Role for Russel {
-    fn receive(&self, message: Json) {
+    fn receive(&self, message: Json) -> Json {
 
-        fn add_exclamation(content: String) -> String {
-            return content + "!"
-        }
-
-        // sleep(Duration::from_millis(2));
-
-        println!("{:?}", message.to_string() + &*self.first_name.clone() + &*self.say_hi().clone() );
-    }
-    
+        return Json::String("Russel received".to_string());
+    }   
 }
 
 
 impl Role for Joaquin {
-    fn receive(&self, message: Json){
-
-        fn add_exclamation(content: String) -> String {
-            return content + "!"
-        }
-
-        println!("{:?}", message.to_string());
+    fn receive(&self, message: Json) -> Json {
+        return Json::String("Joaquin received".to_string());
     }
-    
 }
 
 fn main() {
-    // Spawing Actor system with a threadpool of 4
-    let mut system = ActorSystem::new(4);
+    let system = ActorSystem::new(4);
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
+        &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
     }
 
     {
         // Spawn as many actors as you want
-        let act_ref = &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
+        &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
     }
 
 
@@ -88,11 +73,14 @@ fn main() {
 
     let message = MyMessage{content: "Are you not entertained?".to_string()};
     let message2 = MyMessage{content: "No, I am not entertained".to_string()};
+    let message3 = MyMessage{content: "How dare you show your back to me!?".to_string()};
 
     let response = crowe.send(message.to_json());
     let response2 = joaquin.send(message2.to_json());
+    let response3 = joaquin.send_to("Crowe".to_string(), message3.to_json());
 
-    println!("{:?}", response.recv());
-    println!("{:?}", response2.recv());
+    println!("{:?}", response.recv().unwrap());
+    println!("{:?}", response2.recv().unwrap());
+    println!("{:?}", response3.recv().unwrap());
 
 }

@@ -6,6 +6,9 @@ use std::sync::mpsc::Receiver;
 use actor::Role;
 use std::sync::mpsc::{TryRecvError, RecvError};
 use std::sync::Arc;
+use std::collections::HashMap;
+use std::cell::RefCell;
+use std::rc::Rc;
 /// Actor Reference
 /// Has in its guts the Actor(A), Message(M) and Result(R)
 ///
@@ -13,37 +16,27 @@ use std::sync::Arc;
 ///
 
 
-// ################################
-// Make a trait object that returns the
-// receive function
-// 
-// 
-//   
-//    
-//      
-//
-// ################################
-
-
-
-
-
-
-
 #[derive(Clone)]
-pub struct ActorRef<'a> {
-    pool: &'a ThreadPool,
-    role: Arc<Box<Role + Sync + Send + 'static>>
+struct Context<'sys, 'b: 'sys> {
+    system: &'sys ActorSystem<'sys, 'b>
 }
 
 
-impl <'a>ActorRef<'a> {
-    pub fn new(pool: &'a ThreadPool, role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'a> {
+#[derive(Clone)]
+pub struct ActorRef<'sys, 'b:'sys> {
+    role: Arc<Box<Role + Sync + Send + 'static>>,
+    context: Context<'sys, 'b>
+}
+
+
+impl<'sys, 'b>ActorRef<'sys, 'b> {
+    pub fn new(system: &'sys ActorSystem<'sys, 'b>, 
+               role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'sys, 'b> {
         // Add reference to threadpool and receive function in 
         // the contructor
         ActorRef {
-            pool: pool,
-            role: role
+            role: role,
+            context: Context{system: system}
         }
     }
 
@@ -56,11 +49,36 @@ impl <'a>ActorRef<'a> {
 
         let role = self.role.clone();
 
-        self.pool.execute(move || {
-            role.clone().receive(message);
+        self.context.system.pool.execute(move || {
+            let response = role.clone().receive(message);
             // print!("{:?}", );
             // let t_role = role.clone();
-            tx.send("Finished".to_string()).unwrap();
+            tx.send(response.to_string()).unwrap();
+        });
+
+        // Recv blocks the thread until the other thread has finished
+        return rx;
+
+    }
+
+    pub fn send_to(&self, actor_name: String, message: Json) -> Receiver<String> {
+
+        // Use the references to the receive function and pool to be able to
+        // abstract away the need for the user to pass in pool and receive
+        let actor = self.context.system.actor_refs.borrow()
+                        .get(&actor_name.clone())
+                        .unwrap().clone();
+
+
+        let (tx, rx) = channel();
+
+        let role = actor.role.clone();
+
+        self.context.system.pool.execute(move || {
+            let response = role.clone().receive(message);
+            // print!("{:?}", );
+            // let t_role = role.clone();
+            tx.send(response.to_string()).unwrap();
         });
 
         // Recv blocks the thread until the other thread has finished

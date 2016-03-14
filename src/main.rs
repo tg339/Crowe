@@ -1,4 +1,5 @@
 extern crate crowe;
+extern crate time;
 extern crate rustc_serialize;
 use crowe::actor::{Role};
 use crowe::actor_system::ActorSystem;
@@ -7,7 +8,7 @@ use rustc_serialize::json::*;
 use std::thread;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread::sleep;
-use std::time::Duration;
+use time::{Duration, PreciseTime};
 use std::collections::BTreeMap;
 
 #[derive(RustcDecodable, RustcEncodable)]
@@ -63,7 +64,7 @@ fn main() {
 
     {
         // Spawn as many actors as you want
-        &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
+        &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));
     }
 
 
@@ -91,6 +92,8 @@ fn main() {
     // Definition of the actor roles, we only have workers since the master is the Actor sytem
     // We also will compute the repartition of the tasks on the current thread.
     // The Actor does not need to hold any state
+    println!("====== Assignement 2 =====");
+
     #[derive(Clone)]
     struct Worker;
 
@@ -111,7 +114,7 @@ fn main() {
     }
 
     impl Role for Worker {
-        fn receive(&self, message: Json) {
+        fn receive(&self, message: Json) -> Json{
 
             let obj = message.as_object().expect("The message should be a valid Json object");
 
@@ -125,7 +128,7 @@ fn main() {
                 .as_u64()
                 .expect("The 'divided_n' field is not an integer");
 
-            number_list.iter()
+            return number_list.iter()
                 .filter_map(|number| {
                     let temp = number.as_u64().expect("'number_list' contains non number values");
 
@@ -134,7 +137,7 @@ fn main() {
                     } else {
                         None
                     }
-                }).collect::<Vec<u64>>();
+                }).collect::<Vec<u64>>().to_json();
         }
     }
 
@@ -148,6 +151,8 @@ fn main() {
     // all the work will be assigned
     let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
     let mut channels = Vec::new();
+
+    let start = PreciseTime::now();
 
     let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
 
@@ -163,4 +168,11 @@ fn main() {
         let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work};
         channels.push(worker.send(divideOrder.to_json()));
     }
+
+    for i in 0..(processors - 1) {
+        let res = channels[i].recv().unwrap();
+        println!("Result from processor {0}: {1}", i + 1 , res);
+    }
+
+    println!("Total Time to compute: {:?} ms", start.to(PreciseTime::now()).num_milliseconds());
 }

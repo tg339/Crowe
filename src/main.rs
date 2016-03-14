@@ -157,7 +157,7 @@ fn main() {
     let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
 
     // Generate the work
-    for i in 1..processors {
+    for i in 1..(processors + 1) {
         let mut work = Vec::with_capacity(number_per_worker);
         let upper_bound = (i * number_per_worker) + 1;
         if upper_bound < number_to_divide{
@@ -169,7 +169,7 @@ fn main() {
         channels.push(worker.send(divideOrder.to_json()));
     }
 
-    for i in 0..(processors - 1) {
+    for i in 0..processors {
         let res = channels[i].recv().unwrap();
         println!("Result from processor {0}: {1}", i + 1 , res);
     }

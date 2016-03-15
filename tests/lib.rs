@@ -26,9 +26,9 @@ struct Russel {
 
 impl Russel {
     fn say_hi(&self) -> String {
-        return "I said hello".to_string();
+        return "I, Russel, said hello".to_string();
     }
-}
+} 
 
 #[derive(Clone)]
 struct Joaquin {
@@ -44,9 +44,12 @@ impl Role for Russel {
 
 impl Role for Joaquin {
     fn receive(&self, message: Json) -> Json {
-        return Json::String(message.to_string());
+        return Json::String("Joaquin received".to_string());
     }
 }
+
+
+
 
 
 #[test]
@@ -54,15 +57,12 @@ fn generating_multiple_actors_sending_message_and_getting_responses() {
      let system = ActorSystem::new(4);
 
     {
-        // Spawn as many actors as you want
         &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
     }
 
     {
-        // Spawn as many actors as you want
         &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
     }
-
 
     let crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
     let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
@@ -72,11 +72,37 @@ fn generating_multiple_actors_sending_message_and_getting_responses() {
     let message = MyMessage{content: "Are you not entertained?".to_string()};
     let message2 = MyMessage{content: "No, I am not entertained".to_string()};
 
-    let response = crowe.send(message.to_json());
-    let response2 = joaquin.send(message2.to_json());
+    let response = crowe.send(message.to_json()).recv().unwrap();
+    let response2 = joaquin.send(message2.to_json()).recv().unwrap();
 
-    assert_eq!(response.recv().unwrap(), "\"I said hello\"".to_string());
-
-    println!("{:?}", response.recv().unwrap());
-    println!("{:?}", response2.recv().unwrap());
+    assert_eq!(response, "\"I, Russel, said hello\"".to_string());
+    assert_eq!(response2, "\"Joaquin received\"".to_string());
 }
+
+
+// #[test]
+// fn sending_message_and_getting_responses() {
+//      let system = ActorSystem::new(4);
+
+//     {
+//         &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
+//     }
+
+//     {
+//         &mut system.spawn_actor("Joaquin".to_string(), Box::new(Joaquin{last_name: "Russel".to_string()}));  
+//     }
+
+//     let crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
+//     let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
+
+//     // let some = system.actors.borrow().get("Crowe").unwrap().clone();
+
+//     let message = MyMessage{content: "Are you not entertained?".to_string()};
+//     let message2 = MyMessage{content: "No, I am not entertained".to_string()};
+
+//     let response = crowe.send(message.to_json()).recv().unwrap();
+//     let response2 = joaquin.send(message2.to_json()).recv().unwrap();
+
+//     assert_eq!(response, "\"I, Russel, said hello\"".to_string());
+//     assert_eq!(response2, "\"Joaquin received\"".to_string());
+// }

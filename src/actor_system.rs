@@ -24,7 +24,7 @@ pub struct ActorSystem<'sys, 'b: 'sys> {
     // could be a more efficient way of referencing actors
     pub pool: ThreadPool,
     pub actor_refs: Rc<RefCell<HashMap<String, ActorRef<'sys, 'b>>>>
-    // pub actors: Rc<RefCell<HashMap<Stringrc<Box<Role + Send + 'static>>>>>
+    // pub actors: Rc<RefCell<HashMap<String, <Box<Role + Send + 'static>>>>>
 }
 
 

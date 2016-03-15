@@ -2,13 +2,7 @@ extern crate crowe;
 extern crate rustc_serialize;
 use crowe::actor::{Role};
 use crowe::actor_system::ActorSystem;
-use rustc_serialize::{Decodable};
 use rustc_serialize::json::*;
-use std::thread;
-use std::sync::mpsc::{Sender, Receiver, channel};
-use std::fmt::Debug;
-use std::thread::sleep;
-use std::time::Duration;
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
@@ -29,9 +23,9 @@ struct Russel {
 
 impl Russel {
     fn say_hi(&self) -> String {
-        return "I said hello".to_string();
+        return "I, Russel, said hello".to_string();
     }
-}
+} 
 
 #[derive(Clone)]
 struct Joaquin {
@@ -40,8 +34,7 @@ struct Joaquin {
     
 impl Role for Russel {
     fn receive(&self, message: Json) -> Json {
-
-        return Json::String("Russel received".to_string());
+        return Json::String(self.say_hi());
     }   
 }
 
@@ -76,8 +69,11 @@ fn main() {
     let message3 = MyMessage{content: "How dare you show your back to me!?".to_string()};
 
     let response = crowe.send(message.to_json());
+
     let response2 = joaquin.send(message2.to_json());
+
     let response3 = joaquin.send_to("Crowe".to_string(), message3.to_json());
+
 
     println!("{:?}", response.recv().unwrap());
     println!("{:?}", response2.recv().unwrap());

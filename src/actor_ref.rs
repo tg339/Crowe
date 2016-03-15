@@ -32,8 +32,6 @@ pub struct ActorRef<'sys, 'b:'sys> {
 impl<'sys, 'b>ActorRef<'sys, 'b> {
     pub fn new(system: &'sys ActorSystem<'sys, 'b>, 
                role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'sys, 'b> {
-        // Add reference to threadpool and receive function in 
-        // the contructor
         ActorRef {
             role: role,
             context: Context{system: system}

@@ -100,14 +100,16 @@ fn main() {
     #[derive(RustcDecodable, RustcEncodable)]
     struct DivideOrder {
         divided_n: usize,
-        number_list: Vec<usize>
+        number_upper: usize,
+        number_lower: usize
     }
 
     impl ToJson for DivideOrder {
         fn to_json(&self) -> Json {
             let mut d = BTreeMap::new();
 
-            d.insert("number_list".to_string(), self.number_list.to_json());
+            d.insert("number_upper".to_string(), self.number_upper.to_json());
+            d.insert("number_lower".to_string(), self.number_lower.to_json());
             d.insert("divided_n".to_string(), self.divided_n.to_json());
             Json::Object(d)
         }
@@ -118,22 +120,26 @@ fn main() {
 
             let obj = message.as_object().expect("The message should be a valid Json object");
 
-            let number_list = obj.get("number_list")
-                .expect("The message received doesn't have a 'number_list' defined.")
-                .as_array()
-                .expect("The 'number_list' field is not an array");
+            let number_upper = obj.get("number_upper")
+                .expect("The message received doesn't have a 'number_upper' defined.")
+                .as_u64()
+                .expect("The 'number_upper' field is not an integer");
+
+            let number_lower = obj.get("number_lower")
+                .expect("The message received doesn't have a 'number_lower' defined.")
+                .as_u64()
+                .expect("The 'number_lower' field is not an integer");
 
             let n = obj.get("divided_n")
                 .expect("The message received doesn't have a 'divided_n' defined.")
                 .as_u64()
                 .expect("The 'divided_n' field is not an integer");
 
-            return number_list.iter()
+            return (number_lower..number_upper)
                 .filter_map(|number| {
-                    let temp = number.as_u64().expect("'number_list' contains non number values");
 
-                    if n % temp == 0 {
-                        Some(temp)
+                    if n % number == 0 {
+                        Some(number)
                     } else {
                         None
                     }
@@ -141,38 +147,44 @@ fn main() {
         }
     }
 
-    // Execution of the division template
-    let number_to_divide: usize = 3293428;
-    let processors: usize = 2;
-    let mut trialSystem = ActorSystem::new(processors);
+    for processors in 1..16 {
+        println!("Speed test with: {:?}", processors);
 
-    // Let's compute the repartition of the numbers
-    // We ceil, the last bucket may have less work to do but it guarantees that
-    // all the work will be assigned
-    let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
-    let mut channels = Vec::new();
+        // Execution of the division template
+        let number_to_divide: usize = 32934280;
+        let mut trialSystem = ActorSystem::new(processors);
 
-    let start = PreciseTime::now();
+        // Let's compute the repartition of the numbers
+        // We ceil, the last bucket may have less work to do but it guarantees that
+        // all the work will be assigned
+        let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
+        let mut channels = Vec::new();
 
-    let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
+        let start = PreciseTime::now();
 
-    // Generate the work
-    for i in 1..(processors + 1) {
-        let mut work = Vec::with_capacity(number_per_worker);
-        let upper_bound = (i * number_per_worker) + 1;
-        if upper_bound < number_to_divide{
-            for it in ((i - 1) * number_per_worker + 1)..upper_bound {
-                work.push(it);
-            }
+        // We only need to spawn one actor in the system because the execution of the actor
+        // is multithreaded in a threadpool.
+        let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
+
+        // Generate the work
+        for i in 1..(processors + 1) {
+
+            let lower_bound = (i - 1) * number_per_worker + 1;
+            let upper_bound = (i * number_per_worker) + 1;
+
+            let divideOrder = DivideOrder{
+                divided_n: number_to_divide,
+                number_upper: upper_bound,
+                number_lower: lower_bound
+             };
+            channels.push(worker.send(divideOrder.to_json()));
         }
-        let divideOrder = DivideOrder{divided_n: number_to_divide, number_list: work};
-        channels.push(worker.send(divideOrder.to_json()));
-    }
 
-    for i in 0..processors {
-        let res = channels[i].recv().unwrap();
-        println!("Result from processor {0}: {1}", i + 1 , res);
-    }
+        for i in 0..processors {
+            let res = channels[i].recv().unwrap();
+            println!("Result from processor {0}: {1}", i + 1 , res);
+        }
 
-    println!("Total Time to compute: {:?} ms", start.to(PreciseTime::now()).num_milliseconds());
+        println!("Total Time to compute: {:?} ms", start.to(PreciseTime::now()).num_milliseconds());
+    }
 }

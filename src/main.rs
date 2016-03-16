@@ -9,7 +9,8 @@ use std::thread;
 use std::sync::mpsc::{Sender, Receiver, channel};
 use std::thread::sleep;
 use time::{Duration, PreciseTime};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
+use std::collections::hash_map::Entry::{Occupied, Vacant};
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
@@ -147,44 +148,67 @@ fn main() {
         }
     }
 
-    for processors in 1..16 {
-        println!("Speed test with: {:?}", processors);
 
-        // Execution of the division template
-        let number_to_divide: usize = 32934280;
-        let mut trialSystem = ActorSystem::new(processors);
+    // This is to store the mean of the results
+    let mut results: HashMap<usize, f64> = HashMap::new();
+    let max_processors = 16;
+    let total_start = PreciseTime::now();
 
-        // Let's compute the repartition of the numbers
-        // We ceil, the last bucket may have less work to do but it guarantees that
-        // all the work will be assigned
-        let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
-        let mut channels = Vec::new();
+    // We want to test several times to get the average value of the spent time
+    for repetition in 1..20 {
+        println!("Iteration {:?}", repetition);
+        for processors in 1..max_processors {
+            //println!("Speed test with: {:?}", processors);
 
-        let start = PreciseTime::now();
+            // Execution of the division template
+            let number_to_divide: usize = 32934280;
+            let mut trialSystem = ActorSystem::new(processors);
 
-        // We only need to spawn one actor in the system because the execution of the actor
-        // is multithreaded in a threadpool.
-        let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
+            // Let's compute the repartition of the numbers
+            // We ceil, the last bucket may have less work to do but it guarantees that
+            // all the work will be assigned
+            let number_per_worker = ((number_to_divide as f64)/ (processors as f64)).ceil() as usize;
+            let mut channels = Vec::new();
 
-        // Generate the work
-        for i in 1..(processors + 1) {
+            let start = PreciseTime::now();
 
-            let lower_bound = (i - 1) * number_per_worker + 1;
-            let upper_bound = (i * number_per_worker) + 1;
+            // We only need to spawn one actor in the system because the execution of the actor
+            // is multithreaded in a threadpool.
+            let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
 
-            let divideOrder = DivideOrder{
-                divided_n: number_to_divide,
-                number_upper: upper_bound,
-                number_lower: lower_bound
-             };
-            channels.push(worker.send(divideOrder.to_json()));
+            // Generate the work
+            for i in 1..(processors + 1) {
+
+                let lower_bound = (i - 1) * number_per_worker + 1;
+                let upper_bound = (i * number_per_worker) + 1;
+
+                let divideOrder = DivideOrder{
+                    divided_n: number_to_divide,
+                    number_upper: upper_bound,
+                    number_lower: lower_bound
+                 };
+                channels.push(worker.send(divideOrder.to_json()));
+            }
+
+            for i in 0..processors {
+                // Receives the list of numbers factorized. We don't need those for the test
+                let res = channels[i].recv().unwrap();
+                // To see the results uncomment below
+                // println!("Result from processor {0}: {1}", i + 1 , res);
+            }
+
+            let elapsed_time = start.to(PreciseTime::now()).num_milliseconds() as f64;
+
+            match results.entry(processors) {
+                Occupied(mut entry) => { *entry.get_mut() = (entry.get() + elapsed_time) / 2.0;},
+                Vacant(entry) => {entry.insert(elapsed_time);}
+            };
+            // println!("Total Time to compute: {:?} ms", start.to(PreciseTime::now()).num_milliseconds());
         }
-
-        for i in 0..processors {
-            let res = channels[i].recv().unwrap();
-            println!("Result from processor {0}: {1}", i + 1 , res);
-        }
-
-        println!("Total Time to compute: {:?} ms", start.to(PreciseTime::now()).num_milliseconds());
+    }
+    println!("Test Finished in {:?} seconds", total_start.to(PreciseTime::now()).num_seconds());
+    println!("Results: ", );
+    for (processor, time_to_execute) in &results {
+        println!("Job with {:?} processors executed on average in {} ms", processor, time_to_execute);
     }
 }

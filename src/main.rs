@@ -3,12 +3,8 @@ extern crate time;
 extern crate rustc_serialize;
 use crowe::actor::{Role};
 use crowe::actor_system::ActorSystem;
-use rustc_serialize::{Decodable};
 use rustc_serialize::json::*;
-use std::thread;
-use std::sync::mpsc::{Sender, Receiver, channel};
-use std::thread::sleep;
-use time::{Duration, PreciseTime};
+use time::{PreciseTime};
 use std::collections::{BTreeMap, HashMap};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 
@@ -41,9 +37,7 @@ struct Joaquin {
 }
 
 impl Role for Russel {
-
     fn receive(&self, message: Json) -> Json {
-
         return Json::String("Russel received".to_string());
     }
 }
@@ -57,7 +51,6 @@ impl Role for Joaquin {
 
 fn main() {
     let system = ActorSystem::new(4);
-
     {
         // Spawn as many actors as you want
         &mut system.spawn_actor("Crowe".to_string(), Box::new(Russel{first_name: "Russel".to_string()}));
@@ -162,7 +155,7 @@ fn main() {
 
             // Execution of the division template
             let number_to_divide: usize = 32934280;
-            let mut trialSystem = ActorSystem::new(processors);
+            let trial_system = ActorSystem::new(processors);
 
             // Let's compute the repartition of the numbers
             // We ceil, the last bucket may have less work to do but it guarantees that
@@ -174,7 +167,7 @@ fn main() {
 
             // We only need to spawn one actor in the system because the execution of the actor
             // is multithreaded in a threadpool.
-            let worker = &mut trialSystem.spawn_actor("Worker".to_string(), Box::new(Worker));
+            let worker = &mut trial_system.spawn_actor("Worker".to_string(), Box::new(Worker));
 
             // Generate the work
             for i in 1..(processors + 1) {
@@ -182,19 +175,19 @@ fn main() {
                 let lower_bound = (i - 1) * number_per_worker + 1;
                 let upper_bound = (i * number_per_worker) + 1;
 
-                let divideOrder = DivideOrder{
+                let divide_order = DivideOrder{
                     divided_n: number_to_divide,
                     number_upper: upper_bound,
                     number_lower: lower_bound
                  };
-                channels.push(worker.send(divideOrder.to_json()));
+                channels.push(worker.send(divide_order.to_json()));
             }
 
             for i in 0..processors {
                 // Receives the list of numbers factorized. We don't need those for the test
                 let res = channels[i].recv().unwrap();
                 // To see the results uncomment below
-                // println!("Result from processor {0}: {1}", i + 1 , res);
+                println!("Result from processor {0}: {1}", i + 1 , res);
             }
 
             let elapsed_time = start.to(PreciseTime::now()).num_milliseconds() as f64;

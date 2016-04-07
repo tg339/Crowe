@@ -1,14 +1,9 @@
 use actor_system::ActorSystem;
-use threadpool::ThreadPool;
 use rustc_serialize::json::Json;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use actor::Role;
-use std::sync::mpsc::{TryRecvError, RecvError};
 use std::sync::Arc;
-use std::collections::HashMap;
-use std::cell::RefCell;
-use std::rc::Rc;
 /// Actor Reference
 /// Has in its guts the Actor(A), Message(M) and Result(R)
 ///
@@ -30,9 +25,9 @@ pub struct ActorRef<'sys, 'b:'sys> {
 
 
 impl<'sys, 'b>ActorRef<'sys, 'b> {
-    pub fn new(system: &'sys ActorSystem<'sys, 'b>, 
+    pub fn new(system: &'sys ActorSystem<'sys, 'b>,
                role: Arc<Box<Role + Sync + Send + 'static>>) -> ActorRef<'sys, 'b> {
-        // Add reference to threadpool and receive function in 
+        // Add reference to threadpool and receive function in
         // the contructor
         ActorRef {
             role: role,

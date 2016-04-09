@@ -7,6 +7,7 @@ use rustc_serialize::json::*;
 use time::{PreciseTime};
 use std::collections::{BTreeMap, HashMap};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::time::Duration;
 
 #[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
@@ -62,8 +63,8 @@ fn main() {
     }
 
 
-    let crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
-    let joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
+    let mut crowe = system.actor_refs.borrow().get("Crowe").unwrap().clone();
+    let mut joaquin = system.actor_refs.borrow().get("Joaquin").unwrap().clone();
 
     // let some = system.actors.borrow().get("Crowe").unwrap().clone();
 
@@ -185,7 +186,8 @@ fn main() {
 
             for i in 0..processors {
                 // Receives the list of numbers factorized. We don't need those for the test
-                let res = channels[i].recv().unwrap();
+                let timeout = Duration::from_millis(300);
+                let res = worker.safe_receive(&channels[i], timeout).unwrap();
                 // To see the results uncomment below
                 println!("Result from processor {0}: {1}", i + 1 , res);
             }

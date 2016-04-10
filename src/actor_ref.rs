@@ -2,11 +2,10 @@ use actor_system::ActorSystem;
 use rustc_serialize::json::Json;
 use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
-use std::sync::mpsc::TryRecvError;
-use std::time::Duration;
+use std::sync::mpsc::RecvError;
 use actor::Role;
 use std::sync::Arc;
-use std::thread::sleep;
+use rand::random;
 /// Actor Reference
 /// Has in its guts the Actor(A), Message(M) and Result(R)
 ///
@@ -44,22 +43,35 @@ impl<'sys, 'b>ActorRef<'sys, 'b> {
         // Save last message sent in case of failure
         self.last_message = message.clone();
 
-        // Use the references to the receive function and pool to be able to
-        // abstract away the need for the user to pass in pool and receive
+        // Simulate failure
+        if random() {
+            println!("Success send !");
+            // Use the references to the receive function and pool to be able to
+            // abstract away the need for the user to pass in pool and receive
 
-        let (tx, rx) = channel();
+            let (tx, rx) = channel();
 
-        let role = self.role.clone();
+            let role = self.role.clone();
 
-        self.context.system.pool.execute(move || {
-            let response = role.clone().receive(message);
-            // print!("{:?}", );
-            // let t_role = role.clone();
-            tx.send(response.to_string()).unwrap();
-        });
+            self.context.system.pool.execute(move || {
+                let response = role.clone().receive(message);
+                // print!("{:?}", );
+                // let t_role = role.clone();
+                tx.send(response.to_string()).unwrap();
+            });
 
-        // Recv blocks the thread until the other thread has finished
-        return rx;
+            // Recv blocks the thread until the other thread has finished
+            return rx;
+        } else {
+            println!("! Send failed :(");
+            let (tx, rx) = channel();
+
+            self.context.system.pool.execute(move || {
+                panic!("Thread panicked ");
+            });
+            // Recv blocks the thread until the other thread has finished
+            return rx;
+        }
     }
 
     pub fn send_to(&self, actor_name: String, message: Json) -> Receiver<String> {
@@ -73,30 +85,28 @@ impl<'sys, 'b>ActorRef<'sys, 'b> {
         return actor.send(message);
     }
 
-    pub fn safe_receive<T>(&mut self, recv: &Receiver<T>, timeout: Duration) -> Result<T, TryRecvError> {
-        return self.receive(recv, timeout, 5);
+    pub fn safe_receive(&mut self, recv: &Receiver<String>) -> Result<String, RecvError> {
+        // Try to relaunch 20 times
+        return self.receive(recv, 20);
     }
 
-    fn receive<T>(&mut self, recv: &Receiver<T>, timeout: Duration, attempt_left: i16) -> Result<T, TryRecvError> {
-        // Right now we are going to try 5 times in the timeout interval given by the user
-        let nb_intervals = 10;
-        let timeout_interval = timeout / nb_intervals;
-        for try in 0..nb_intervals {
-            let result = recv.try_recv();
-            if result.is_ok() {
-                return result;
-            }
-            //println!("Could not get the result on try {} , let's try again", try);
-            if attempt_left == 0 && try == nb_intervals - 1 {
-                return result;
-            }
+    fn receive(&mut self, recv: &Receiver<String>, attempt_left: i16) -> Result<String, RecvError> {
 
-            sleep(timeout_interval);
+        let result = recv.recv();
+
+        if result.is_ok() {
+            println!("Receive Success with {} attempts left", attempt_left);
+            return result;
         }
 
-        let to_send = self.last_message.clone();
-        self.send(to_send);
-        return self.receive(recv, timeout, attempt_left - 1);
-
+        if attempt_left > 0 {
+            println!("Try to relaunch the job ... ");
+            let to_send = self.last_message.clone();
+            let new_receiver = self.send(to_send);
+            return self.receive(&new_receiver, attempt_left - 1);
+        } else {
+            println!("Too many failures !");
+            return result
+        }
     }
 }

@@ -1,6 +1,7 @@
 extern crate crowe;
 extern crate time;
 extern crate rustc_serialize;
+extern crate rand;
 use crowe::actor::{Role};
 use crowe::actor_system::ActorSystem;
 use rustc_serialize::json::*;
@@ -9,6 +10,7 @@ use std::collections::{BTreeMap, HashMap};
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::time::Duration;
 
+/*
 #[derive(RustcDecodable, RustcEncodable)]
 struct MyMessage {
     content: String
@@ -49,8 +51,9 @@ impl Role for Joaquin {
         return Json::String("Joaquin received".to_string());
     }
 }
-
+*/
 fn main() {
+    /*
     let system = ActorSystem::new(4);
     {
         // Spawn as many actors as you want
@@ -82,7 +85,7 @@ fn main() {
     println!("{:?}", response.recv().unwrap());
     println!("{:?}", response2.recv().unwrap());
     println!("{:?}", response3.recv().unwrap());
-
+*/
 
     // Assignement 2 trial division.
     // =============================
@@ -189,8 +192,7 @@ fn main() {
 
             for i in 0..processors {
                 // Receives the list of numbers factorized. We don't need those for the test
-                let timeout = Duration::from_millis(300);
-                let res = worker.safe_receive(&channels[i], timeout).unwrap();
+                let res = worker.safe_receive(&channels[i]).unwrap();
                 // To see the results uncomment below
                 println!("Result from processor {0}: {1}", i + 1 , res);
             }

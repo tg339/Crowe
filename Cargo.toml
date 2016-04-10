@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["timdelisle <tg339@cornell.edu>"]
 
 [dependencies]
+time = "0.1"
 rustc-serialize = "0.3"
 syncbox = "0.2.4"
 eventual = "0.1.5"

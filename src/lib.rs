@@ -1,6 +1,7 @@
 extern crate rustc_serialize;
 extern crate threadpool;
 extern crate num_cpus;
+extern crate rand;
 
 pub mod actor;
 pub mod actor_system;

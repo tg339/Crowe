@@ -36,7 +36,8 @@ impl <'sys, 'b>ActorSystem<'sys, 'b> {
         }
     }
 
-    pub fn spawn_actor(&'sys self, name: String, role: Box<Role + Sync + Send + 'static>) -> ActorRef<'sys, 'b> {
+    pub fn spawn_actor(&'sys self, name: String, role: Box<Role + Sync + Send + 'static>) 
+    -> ActorRef<'sys, 'b> {
 
         let arc_role = Arc::new(role);
 

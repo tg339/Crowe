@@ -1,0 +1,6 @@
+{"divided_n":32934280,"number_lower":19760569,"number_upper":26347425}
+{"divided_n":32934280,"number_lower":24700711,"number_upper":32934281}
+{"divided_n":32934280,"number_lower":19760569,"number_upper":26347425}
+{"divided_n":32934280,"number_lower":16467142,"number_upper":21956189}
+{"divided_n":32934280,"number_lower":14114695,"number_upper":18819593}
+{"divided_n":32934280,"number_lower":12350356,"number_upper":16467141}
